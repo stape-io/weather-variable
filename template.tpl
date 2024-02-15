@@ -124,9 +124,8 @@ function sendRequest(url,postBody) {
               Type: 'Request',
               TraceId: traceId,
               EventName: 'WeatherRequest',
-              RequestMethod: 'POST',
+              RequestMethod: 'GET',
               RequestUrl: url,
-              RequestBody: postBody,
           })
         );
         return sendHttpRequest(url).then((response) => {
