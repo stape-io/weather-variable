@@ -12,18 +12,22 @@ const units = data.units;
 const apiKey = data.apiKey;
 const isLoggingEnabled = determinateIsLoggingEnabled();
 const traceId = isLoggingEnabled ? getRequestHeader('trace-id') : undefined;
-function getCity() {
-    const cityFromHeaders = getRequestHeader('X-Geo-City');
-    if(cityFromHeaders === 'ZZ' || !cityFromHeaders) {
+function getGeoInfo() {
+    const cityFromHeaders = getRequestHeader('X-Geo-City') || data.city;
+    const countryFromHeaders = getRequestHeader('X-Geo-Country') || data.countryCode || '';
+    if(cityFromHeaders === 'ZZ' ||  !cityFromHeaders) {
         return null;
     } else {
-        return cityFromHeaders;
+        return {
+            city: cityFromHeaders,
+            country: countryFromHeaders
+        };
     }
 }
 
-const city = getCity();
-if(!city) return null;
-const url = apiUrl + "q=" + enc(city) + "&appid=" + enc(apiKey) + "&units=" + enc(units);
+const geo = getGeoInfo();
+if(!geo) return null;
+const url = apiUrl + "q=" + enc(geo.city) + enc(geo.country) + "&appid=" + enc(apiKey) + "&units=" + enc(units);
 let postBody = null;
 return sendRequest(url,postBody);
 
