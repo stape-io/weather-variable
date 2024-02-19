@@ -28,7 +28,7 @@ function getGeoInfo() {
 const geo = getGeoInfo();
 if(!geo) return null;
 const geoCountry = geo.country ? ',' + geo.country : '';
-const url = apiUrl + "q=" + enc(geo.city) + geo.country + enc(geoCountry) + "&appid=" + enc(apiKey) + "&units=" + enc(units);
+const url = apiUrl + "q=" + enc(geo.city) + enc(geoCountry) + "&appid=" + enc(apiKey) + "&units=" + enc(units);
 let postBody = null;
 return sendRequest(url,postBody);
 
