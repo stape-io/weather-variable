@@ -37,6 +37,29 @@ ___TEMPLATE_PARAMETERS___
     "help": "To get the key visit the https://openweathermap.org/ service."
   },
   {
+    "type": "TEXT",
+    "name": "city",
+    "displayName": "City",
+    "simpleValueType": true,
+    "help": "Enter city name."
+  },
+  {
+    "type": "TEXT",
+    "name": "countryCode",
+    "displayName": "Country code",
+    "simpleValueType": true,
+    "help": "Enter a 2 or 3-digit ISO code for the country.",
+    "valueValidators": [
+      {
+        "type": "STRING_LENGTH",
+        "args": [
+          2,
+          3
+        ]
+      }
+    ]
+  },
+  {
     "type": "SELECT",
     "name": "units",
     "displayName": "Select unit",
@@ -53,34 +76,6 @@ ___TEMPLATE_PARAMETERS___
     ],
     "simpleValueType": true,
     "defaultValue": "imperial"
-  },
-  {
-    "type": "GROUP",
-    "name": "logsGroup",
-    "displayName": "Logs Settings",
-    "groupStyle": "ZIPPY_CLOSED",
-    "subParams": [
-      {
-        "type": "RADIO",
-        "name": "logType",
-        "radioItems": [
-          {
-            "value": "no",
-            "displayValue": "Do not log"
-          },
-          {
-            "value": "debug",
-            "displayValue": "Log to console during debug and preview"
-          },
-          {
-            "value": "always",
-            "displayValue": "Always log to console"
-          }
-        ],
-        "simpleValueType": true,
-        "defaultValue": "debug"
-      }
-    ]
   }
 ]
 
@@ -286,6 +281,6 @@ setup: ''
 
 ___NOTES___
 
-Created on 15/02/2024, 17:22:27
+Created on 19/02/2024, 17:35:58
 
 
