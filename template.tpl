@@ -37,29 +37,6 @@ ___TEMPLATE_PARAMETERS___
     "help": "To get the key visit the https://openweathermap.org/ service."
   },
   {
-    "type": "TEXT",
-    "name": "city",
-    "displayName": "City",
-    "simpleValueType": true,
-    "help": "Enter city name."
-  },
-  {
-    "type": "TEXT",
-    "name": "countryCode",
-    "displayName": "Country code",
-    "simpleValueType": true,
-    "help": "Enter a 2 or 3-digit ISO code for the country.",
-    "valueValidators": [
-      {
-        "type": "STRING_LENGTH",
-        "args": [
-          2,
-          3
-        ]
-      }
-    ]
-  },
-  {
     "type": "SELECT",
     "name": "units",
     "displayName": "Select unit",
@@ -76,6 +53,34 @@ ___TEMPLATE_PARAMETERS___
     ],
     "simpleValueType": true,
     "defaultValue": "imperial"
+  },
+  {
+    "type": "GROUP",
+    "name": "logsGroup",
+    "displayName": "Logs Settings",
+    "groupStyle": "ZIPPY_CLOSED",
+    "subParams": [
+      {
+        "type": "RADIO",
+        "name": "logType",
+        "radioItems": [
+          {
+            "value": "no",
+            "displayValue": "Do not log"
+          },
+          {
+            "value": "debug",
+            "displayValue": "Log to console during debug and preview"
+          },
+          {
+            "value": "always",
+            "displayValue": "Always log to console"
+          }
+        ],
+        "simpleValueType": true,
+        "defaultValue": "debug"
+      }
+    ]
   }
 ]
 
@@ -97,8 +102,8 @@ const apiKey = data.apiKey;
 const isLoggingEnabled = determinateIsLoggingEnabled();
 const traceId = isLoggingEnabled ? getRequestHeader('trace-id') : undefined;
 function getGeoInfo() {
-    const cityFromHeaders = getRequestHeader('X-Geo-City') || data.city;
-    const countryFromHeaders = getRequestHeader('X-Geo-Country') || data.countryCode || '';
+    const cityFromHeaders = data.city || getRequestHeader('X-Geo-City') ;
+    const countryFromHeaders = data.countryCode || getRequestHeader('X-Geo-Country');
     if(cityFromHeaders === 'ZZ' ||  !cityFromHeaders) {
         return null;
     } else {
@@ -110,7 +115,6 @@ function getGeoInfo() {
 }
 
 const geo = getGeoInfo();
-if(!geo) return null;
 const geoCountry = geo.country ? ',' + geo.country : '';
 const url = apiUrl + "q=" + enc(geo.city) + enc(geoCountry) + "&appid=" + enc(apiKey) + "&units=" + enc(units);
 let postBody = null;
@@ -282,6 +286,6 @@ setup: ''
 
 ___NOTES___
 
-Created on 19/02/2024, 17:35:58
+Created on 15/02/2024, 17:22:27
 
 
