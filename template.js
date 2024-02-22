@@ -13,8 +13,8 @@ const apiKey = data.apiKey;
 const isLoggingEnabled = determinateIsLoggingEnabled();
 const traceId = isLoggingEnabled ? getRequestHeader('trace-id') : undefined;
 function getGeoInfo() {
-    const cityFromHeaders = getRequestHeader('X-Geo-City') || data.city;
-    const countryFromHeaders = getRequestHeader('X-Geo-Country') || data.countryCode || '';
+    const cityFromHeaders = data.city || getRequestHeader('X-Geo-City') ;
+    const countryFromHeaders = data.countryCode || getRequestHeader('X-Geo-Country');
     if(cityFromHeaders === 'ZZ' ||  !cityFromHeaders) {
         return null;
     } else {
@@ -26,7 +26,6 @@ function getGeoInfo() {
 }
 
 const geo = getGeoInfo();
-if(!geo) return null;
 const geoCountry = geo.country ? ',' + geo.country : '';
 const url = apiUrl + "q=" + enc(geo.city) + enc(geoCountry) + "&appid=" + enc(apiKey) + "&units=" + enc(units);
 let postBody = null;
