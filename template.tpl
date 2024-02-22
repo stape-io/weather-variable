@@ -14,7 +14,7 @@ ___INFO___
   "version": 1,
   "securityGroups": [],
   "displayName": "Weather",
-  "description": "Weather gives you the ability to get the air temperature in your city.",
+  "description": "Weather variable allow you to get the air temperature in your city.",
   "containerContexts": [
     "SERVER"
   ]
@@ -34,7 +34,7 @@ ___TEMPLATE_PARAMETERS___
       }
     ],
     "displayName": "API Key",
-    "help": "To get the key visit the https://openweathermap.org/ service."
+    "help": "To get the key visit the \u003ca href\u003d\"https://openweathermap.org\" target\u003d\"_blank\"\u003ehttps://openweathermap.org\u003c/a\u003e service."
   },
   {
     "type": "SELECT",
@@ -53,6 +53,19 @@ ___TEMPLATE_PARAMETERS___
     ],
     "simpleValueType": true,
     "defaultValue": "imperial"
+  },
+  {
+    "type": "TEXT",
+    "name": "countryCode",
+    "displayName": "Country Code",
+    "simpleValueType": true,
+    "help": "Please provide a сountry and сity to get the temperature. If you use Stape or AppEngine Hosting for sGTM, then country and city will be detected automatically."
+  },
+  {
+    "type": "TEXT",
+    "name": "city",
+    "displayName": "City",
+    "simpleValueType": true
   },
   {
     "type": "GROUP",
@@ -102,21 +115,20 @@ const apiKey = data.apiKey;
 const isLoggingEnabled = determinateIsLoggingEnabled();
 const traceId = isLoggingEnabled ? getRequestHeader('trace-id') : undefined;
 function getGeoInfo() {
-    const cityFromHeaders = data.city || getRequestHeader('X-Geo-City') ;
-    const countryFromHeaders = data.countryCode || getRequestHeader('X-Geo-Country');
-    if(cityFromHeaders === 'ZZ' ||  !cityFromHeaders) {
+    const city = data.city || getRequestHeader('X-Geo-City') || getRequestHeader('X-Gclb-Region');
+    const country = data.countryCode || getRequestHeader('X-Geo-Country')|| getRequestHeader('X-Gclb-Country');
+    if(city === 'XX' || city === 'ZZ' || !city) {
         return null;
     } else {
         return {
-            city: cityFromHeaders,
-            country: countryFromHeaders
+            city: city,
+            country: country
         };
     }
 }
 
 const geo = getGeoInfo();
-const geoCountry = geo.country ? ',' + geo.country : '';
-const url = apiUrl + "q=" + enc(geo.city) + enc(geoCountry) + "&appid=" + enc(apiKey) + "&units=" + enc(units);
+const url = apiUrl + "q=" + enc(geo.city) + ', ' + enc(geo.country) + "&appid=" + enc(apiKey) + "&units=" + enc(units);
 let postBody = null;
 return sendRequest(url,postBody);
 
@@ -190,6 +202,89 @@ ___SERVER_PERMISSIONS___
       },
       "param": [
         {
+          "key": "headerWhitelist",
+          "value": {
+            "type": 2,
+            "listItem": [
+              {
+                "type": 3,
+                "mapKey": [
+                  {
+                    "type": 1,
+                    "string": "headerName"
+                  }
+                ],
+                "mapValue": [
+                  {
+                    "type": 1,
+                    "string": "trace-id"
+                  }
+                ]
+              },
+              {
+                "type": 3,
+                "mapKey": [
+                  {
+                    "type": 1,
+                    "string": "headerName"
+                  }
+                ],
+                "mapValue": [
+                  {
+                    "type": 1,
+                    "string": "X-Geo-City"
+                  }
+                ]
+              },
+              {
+                "type": 3,
+                "mapKey": [
+                  {
+                    "type": 1,
+                    "string": "headerName"
+                  }
+                ],
+                "mapValue": [
+                  {
+                    "type": 1,
+                    "string": "X-Geo-Country"
+                  }
+                ]
+              },
+              {
+                "type": 3,
+                "mapKey": [
+                  {
+                    "type": 1,
+                    "string": "headerName"
+                  }
+                ],
+                "mapValue": [
+                  {
+                    "type": 1,
+                    "string": "X-Gclb-Region"
+                  }
+                ]
+              },
+              {
+                "type": 3,
+                "mapKey": [
+                  {
+                    "type": 1,
+                    "string": "headerName"
+                  }
+                ],
+                "mapValue": [
+                  {
+                    "type": 1,
+                    "string": "X-Gclb-Country"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        {
           "key": "headersAllowed",
           "value": {
             "type": 8,
@@ -207,7 +302,7 @@ ___SERVER_PERMISSIONS___
           "key": "headerAccess",
           "value": {
             "type": 1,
-            "string": "any"
+            "string": "specific"
           }
         },
         {

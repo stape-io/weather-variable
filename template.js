@@ -13,78 +13,77 @@ const apiKey = data.apiKey;
 const isLoggingEnabled = determinateIsLoggingEnabled();
 const traceId = isLoggingEnabled ? getRequestHeader('trace-id') : undefined;
 function getGeoInfo() {
-    const cityFromHeaders = data.city || getRequestHeader('X-Geo-City') ;
-    const countryFromHeaders = data.countryCode || getRequestHeader('X-Geo-Country');
-    if(cityFromHeaders === 'ZZ' ||  !cityFromHeaders) {
-        return null;
-    } else {
-        return {
-            city: cityFromHeaders,
-            country: countryFromHeaders
-        };
-    }
+  const city = data.city || getRequestHeader('X-Geo-City') || getRequestHeader('X-Gclb-Region');
+  const country = data.countryCode || getRequestHeader('X-Geo-Country')|| getRequestHeader('X-Gclb-Country');
+  if(city === 'XX' || city === 'ZZ' || !city) {
+    return null;
+  } else {
+    return {
+      city: city,
+      country: country
+    };
+  }
 }
 
 const geo = getGeoInfo();
-const geoCountry = geo.country ? ',' + geo.country : '';
-const url = apiUrl + "q=" + enc(geo.city) + enc(geoCountry) + "&appid=" + enc(apiKey) + "&units=" + enc(units);
+const url = apiUrl + "q=" + enc(geo.city) + ', ' + enc(geo.country) + "&appid=" + enc(apiKey) + "&units=" + enc(units);
 let postBody = null;
 return sendRequest(url,postBody);
 
 function sendRequest(url,postBody) {
-    if (isLoggingEnabled) {
+  if (isLoggingEnabled) {
+    logToConsole(
+      JSON.stringify({
+        Name: 'Weather',
+        Type: 'Request',
+        TraceId: traceId,
+        EventName: 'WeatherRequest',
+        RequestMethod: 'GET',
+        RequestUrl: url,
+      })
+    );
+    return sendHttpRequest(url).then((response) => {
+      if (isLoggingEnabled) {
         logToConsole(
           JSON.stringify({
-              Name: 'Weather',
-              Type: 'Request',
-              TraceId: traceId,
-              EventName: 'WeatherRequest',
-              RequestMethod: 'GET',
-              RequestUrl: url,
+            Name: 'Weather',
+            Type: 'Response',
+            TraceId: traceId,
+            EventName: 'WeatherRequest',
+            ResponseStatusCode: response.statusCode,
+            ResponseHeaders: response.headers,
+            ResponseBody: response.body,
           })
         );
-        return sendHttpRequest(url).then((response) => {
-            if (isLoggingEnabled) {
-                logToConsole(
-                  JSON.stringify({
-                      Name: 'Weather',
-                      Type: 'Response',
-                      TraceId: traceId,
-                      EventName: 'WeatherRequest',
-                      ResponseStatusCode: response.statusCode,
-                      ResponseHeaders: response.headers,
-                      ResponseBody: response.body,
-                  })
-                );
-            }
-            if (response.statusCode === 301 || response.statusCode === 302) {
-                return sendRequest(response);
-            }
-            const parsedBody = JSON.parse(response.body);
-            return Math.ceil(parsedBody.main.temp);
-        });
-    }
+      }
+      if (response.statusCode === 301 || response.statusCode === 302) {
+        return sendRequest(response);
+      }
+      const parsedBody = JSON.parse(response.body);
+      return Math.ceil(parsedBody.main.temp);
+    });
+  }
 }
 
 function enc(data) {
-    data = data || '';
-    return encodeUriComponent(data);
+  data = data || '';
+  return encodeUriComponent(data);
 }
 function determinateIsLoggingEnabled() {
-    const containerVersion = getContainerVersion();
-    const isDebug = !!(containerVersion && (containerVersion.debugMode || containerVersion.previewMode));
+  const containerVersion = getContainerVersion();
+  const isDebug = !!(containerVersion && (containerVersion.debugMode || containerVersion.previewMode));
 
-    if (!data.logType) {
-        return isDebug;
-    }
+  if (!data.logType) {
+    return isDebug;
+  }
 
-    if (data.logType === 'no') {
-        return false;
-    }
+  if (data.logType === 'no') {
+    return false;
+  }
 
-    if (data.logType === 'debug') {
-        return isDebug;
-    }
+  if (data.logType === 'debug') {
+    return isDebug;
+  }
 
-    return data.logType === 'always';
+  return data.logType === 'always';
 }
