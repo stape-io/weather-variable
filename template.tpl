@@ -162,7 +162,10 @@ function sendRequest(url,postBody) {
                 return sendRequest(response);
             }
             const parsedBody = JSON.parse(response.body);
-            return Math.ceil(parsedBody.main.temp);
+            return {
+                temperature: Math.ceil(parsedBody.main.temp),
+                rain: parsedBody.rain ? parsedBody.rain['1h'] : 0
+            };
         });
     }
 }
