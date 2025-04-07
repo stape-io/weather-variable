@@ -1,4 +1,4 @@
-# Weather Variable
+# Weather Variable for Google Tag Manager Server Side
 
 Set up a **Weather variable** to monitor the air temperature of a specific city across any analytics platform (like Google Analytics 4).
 
