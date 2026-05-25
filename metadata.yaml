@@ -1,4 +1,7 @@
-homepage: "https://stape.io/"
+homepage: 'https://stape.io/'
+documentation: 'https://github.com/stape-io/weather-variable'
 versions:
+  - sha: 3dd930ae02fb4ce300bc84d468e254ce4e41171a
+    changeNotes: Initial release.
   - sha: 41050b621f72f682749abbefeef9c21bc494201c
     changeNotes: Initial release.
