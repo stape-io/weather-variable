@@ -25,47 +25,153 @@ ___TEMPLATE_PARAMETERS___
 
 [
   {
-    "type": "TEXT",
-    "name": "apiKey",
-    "simpleValueType": true,
-    "valueValidators": [
+    "type": "GROUP",
+    "name": "configGroup",
+    "displayName": "",
+    "groupStyle": "NO_ZIPPY",
+    "subParams": [
       {
-        "type": "NON_EMPTY"
-      }
-    ],
-    "displayName": "API Key",
-    "help": "To get the key visit the \u003ca href\u003d\"https://openweathermap.org\" target\u003d\"_blank\"\u003ehttps://openweathermap.org\u003c/a\u003e service."
-  },
-  {
-    "type": "SELECT",
-    "name": "units",
-    "displayName": "Select unit",
-    "macrosInSelect": false,
-    "selectItems": [
-      {
-        "value": "imperial",
-        "displayValue": "Fahrenheit"
+        "type": "TEXT",
+        "name": "apiKey",
+        "simpleValueType": true,
+        "valueValidators": [
+          {
+            "type": "NON_EMPTY"
+          }
+        ],
+        "displayName": "API Key",
+        "help": "To get the key visit the \u003ca href\u003d\"https://openweathermap.org\" target\u003d\"_blank\"\u003ehttps://openweathermap.org\u003c/a\u003e service."
       },
       {
-        "value": "metric",
-        "displayValue": "Celsius"
+        "type": "SELECT",
+        "name": "units",
+        "displayName": "Select unit system",
+        "macrosInSelect": false,
+        "selectItems": [
+          {
+            "value": "imperial",
+            "displayValue": "Imperial"
+          },
+          {
+            "value": "metric",
+            "displayValue": "Metric"
+          }
+        ],
+        "simpleValueType": true,
+        "defaultValue": "imperial",
+        "help": "Select unit system.\u003c/br\u003e \n\u003cul\u003e\n  \u003cli\u003e\u003cb\u003eImperial\u003c/b\u003e: speed in miles/hour and temperature in Fahrenheit\u003c/li\u003e\n  \u003cli\u003e\u003cb\u003eMetric\u003c/b\u003e: speed in meters/second and temperature in Celsius\u003c/li\u003e\n\u003c/ul\u003e"
+      },
+      {
+        "type": "TEXT",
+        "name": "countryCode",
+        "displayName": "Country Code",
+        "simpleValueType": true,
+        "help": "Please provide a сountry and сity to get the temperature. If you use Stape or AppEngine Hosting for sGTM, then country and city will be detected automatically."
+      },
+      {
+        "type": "TEXT",
+        "name": "city",
+        "displayName": "City",
+        "simpleValueType": true
       }
-    ],
-    "simpleValueType": true,
-    "defaultValue": "imperial"
+    ]
   },
   {
-    "type": "TEXT",
-    "name": "countryCode",
-    "displayName": "Country Code",
-    "simpleValueType": true,
-    "help": "Please provide a сountry and сity to get the temperature. If you use Stape or AppEngine Hosting for sGTM, then country and city will be detected automatically."
-  },
-  {
-    "type": "TEXT",
-    "name": "city",
-    "displayName": "City",
-    "simpleValueType": true
+    "type": "GROUP",
+    "name": "returnOptionsGroup",
+    "displayName": "",
+    "groupStyle": "NO_ZIPPY",
+    "subParams": [
+      {
+        "type": "SELECT",
+        "name": "whatToReturn",
+        "displayName": "What To Return",
+        "macrosInSelect": false,
+        "selectItems": [
+          {
+            "value": "allData",
+            "displayValue": "All Data"
+          },
+          {
+            "value": "coord.lon",
+            "displayValue": "Longitude"
+          },
+          {
+            "value": "coord.lat",
+            "displayValue": "Latitude"
+          },
+          {
+            "value": "weather.0.description",
+            "displayValue": "Weather Description"
+          },
+          {
+            "value": "main.temp",
+            "displayValue": "Temperature"
+          },
+          {
+            "value": "main.feels_like",
+            "displayValue": "Feels Like Temperature"
+          },
+          {
+            "value": "main.pressure",
+            "displayValue": "Pressure (hPa)"
+          },
+          {
+            "value": "main.humidity",
+            "displayValue": "Humidity (%)"
+          },
+          {
+            "value": "main.temp_min",
+            "displayValue": "Minimum Temperature"
+          },
+          {
+            "value": "main.temp_max",
+            "displayValue": "Maximum Temperature"
+          },
+          {
+            "value": "visibility",
+            "displayValue": "Visibility (meters)"
+          },
+          {
+            "value": "wind.speed",
+            "displayValue": "Wind Speed (meters/sec or miles/hr)"
+          },
+          {
+            "value": "wind.gust",
+            "displayValue": "Wind Gust (meters/sec or miles/hr)"
+          },
+          {
+            "value": "clouds.all",
+            "displayValue": "Cloudiness (%)"
+          },
+          {
+            "value": "rain.1h",
+            "displayValue": "Rain (mm/h)"
+          },
+          {
+            "value": "snow.1h",
+            "displayValue": "Snow (mm/h)"
+          },
+          {
+            "value": "sys.sunrise",
+            "displayValue": "Sunrise Time (seconds) - Unix [UTC]"
+          },
+          {
+            "value": "sys.sunset",
+            "displayValue": "Sunset Time (seconds) - Unix [UTC]"
+          }
+        ],
+        "simpleValueType": true,
+        "valueValidators": [
+          {
+            "type": "NON_EMPTY"
+          }
+        ],
+        "defaultValue": "main.temp",
+        "alwaysInSummary": false,
+        "help": "Choose a property to return. \u003c/br\u003e \nDefaults to \u003cb\u003eTemperature\u003c/b\u003e."
+      }
+    ]
   }
 ]
 
@@ -121,13 +227,21 @@ function getGeoInfo() {
 }
 
 function sendRequest(url) {
-  return sendHttpRequest(url).then((response) => {
-    if (response.statusCode === 301 || response.statusCode === 302) {
-      return sendRequest(response);
-    }
-    const parsedBody = JSON.parse(response.body);
-    return Math.ceil(parsedBody.main.temp);
-  });
+  return sendHttpRequest(url)
+    .then((response) => {
+      const parsedBody = JSON.parse(response.body || '{}');
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        return parsedBody.message || 'Request failed';
+      }
+
+      const whatToReturn = data.whatToReturn || 'main.temp'; // Backwards compatibility.
+      const returnAll = whatToReturn === 'allData';
+      if (returnAll) return parsedBody;
+
+      const returnValue = getNestedValue(parsedBody, whatToReturn.split('.'));
+      return whatToReturn === 'main.temp' ? Math.ceil(returnValue) : returnValue; // Backwards compatibility.
+    })
+    .catch((exception) => 'Error' + (exception.reason ? ': ' + exception.reason : ''));
 }
 
 /*==============================================================================
@@ -137,6 +251,12 @@ function sendRequest(url) {
 function enc(data) {
   if (['null', 'undefined'].indexOf(getType(data)) !== -1) data = '';
   return encodeUriComponent(makeString(data));
+}
+
+function getNestedValue(obj, pathArray) {
+  return pathArray.reduce((acc, key) => {
+    return getType(acc) !== 'undefined' && getType(acc) !== 'null' ? acc[key] : undefined;
+  }, obj);
 }
 
 
@@ -264,7 +384,19 @@ ___SERVER_PERMISSIONS___
           "key": "allowedUrls",
           "value": {
             "type": 1,
-            "string": "any"
+            "string": "specific"
+          }
+        },
+        {
+          "key": "urls",
+          "value": {
+            "type": 2,
+            "listItem": [
+              {
+                "type": 1,
+                "string": "https://api.openweathermap.org/data/2.5/weather*"
+              }
+            ]
           }
         }
       ]
@@ -279,9 +411,7 @@ ___SERVER_PERMISSIONS___
 
 ___TESTS___
 
-scenarios:
-- name: Quick Test
-  code: runCode();
+scenarios: []
 setup: ''
 
 
@@ -291,4 +421,5 @@ ___NOTES___
  - Console logging removal.
 
 Created on 15/02/2024, 17:22:27
+
 

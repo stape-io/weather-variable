@@ -3,6 +3,7 @@ const getRequestHeader = require('getRequestHeader');
 const getType = require('getType');
 const JSON = require('JSON');
 const makeString = require('makeString');
+const makeTableMap = require('makeTableMap');
 const Math = require('Math');
 const sendHttpRequest = require('sendHttpRequest');
 
@@ -47,13 +48,21 @@ function getGeoInfo() {
 }
 
 function sendRequest(url) {
-  return sendHttpRequest(url).then((response) => {
-    if (response.statusCode === 301 || response.statusCode === 302) {
-      return sendRequest(response);
-    }
-    const parsedBody = JSON.parse(response.body);
-    return Math.ceil(parsedBody.main.temp);
-  });
+  return sendHttpRequest(url)
+    .then((response) => {
+      const parsedBody = JSON.parse(response.body || '{}');
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        return parsedBody.message || 'Request failed';
+      }
+
+      const whatToReturn = data.whatToReturn || 'main.temp'; // Backwards compatibility.
+      const returnAll = whatToReturn === 'allData';
+      if (returnAll) return parsedBody;
+
+      const returnValue = getNestedValue(parsedBody, whatToReturn.split('.'));
+      return whatToReturn === 'main.temp' ? Math.ceil(returnValue) : returnValue; // Backwards compatibility.
+    })
+    .catch((exception) => 'Error' + (exception.reason ? ': ' + exception.reason : ''));
 }
 
 /*==============================================================================
@@ -63,4 +72,10 @@ function sendRequest(url) {
 function enc(data) {
   if (['null', 'undefined'].indexOf(getType(data)) !== -1) data = '';
   return encodeUriComponent(makeString(data));
+}
+
+function getNestedValue(obj, pathArray) {
+  return pathArray.reduce((acc, key) => {
+    return getType(acc) !== 'undefined' && getType(acc) !== 'null' ? acc[key] : undefined;
+  }, obj);
 }

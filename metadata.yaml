@@ -1,6 +1,8 @@
 homepage: 'https://stape.io/'
 documentation: 'https://github.com/stape-io/weather-variable'
 versions:
+  - sha: 429e52bdd7e60ad4951a1bb674232b907d0188a7
+    changeNotes: Add support to return various weather properties.
   - sha: 3dd930ae02fb4ce300bc84d468e254ce4e41171a
     changeNotes: Logging removal.
   - sha: 41050b621f72f682749abbefeef9c21bc494201c
