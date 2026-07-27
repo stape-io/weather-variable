@@ -14,7 +14,7 @@ ___INFO___
   "version": 1,
   "securityGroups": [],
   "displayName": "Weather",
-  "description": "Weather variable allow you to get the air temperature in your city.",
+  "description": "Weather variable allow you to get weather data (air temperature, humidity etc.) in a city.",
   "containerContexts": [
     "SERVER"
   ]
@@ -40,7 +40,7 @@ ___TEMPLATE_PARAMETERS___
           }
         ],
         "displayName": "API Key",
-        "help": "To get the key visit the \u003ca href\u003d\"https://openweathermap.org\" target\u003d\"_blank\"\u003ehttps://openweathermap.org\u003c/a\u003e service."
+        "help": "To get the key visit \u003ca href\u003d\"https://home.openweathermap.org/api_keys\" target\u003d\"_blank\"\u003e OpenWeather API Keys page\u003c/a\u003e."
       },
       {
         "type": "SELECT",
@@ -66,13 +66,14 @@ ___TEMPLATE_PARAMETERS___
         "name": "countryCode",
         "displayName": "Country Code",
         "simpleValueType": true,
-        "help": "Please provide a сountry and сity to get the temperature. If you use Stape or AppEngine Hosting for sGTM, then country and city will be detected automatically."
+        "help": "Please provide a сountry and сity to get the temperature. If you use Stape or GCP App Engine Hosting for sGTM, then country and city will be detected automatically."
       },
       {
         "type": "TEXT",
         "name": "city",
         "displayName": "City",
-        "simpleValueType": true
+        "simpleValueType": true,
+        "help": "Please provide a сountry and сity to get the temperature. If you use Stape or GCP App Engine Hosting for sGTM, then country and city will be detected automatically."
       }
     ]
   },
@@ -411,15 +412,200 @@ ___SERVER_PERMISSIONS___
 
 ___TESTS___
 
-scenarios: []
-setup: ''
+scenarios:
+- name: '[Early Exit] Returns null without calling sendHttpRequest when no valid city
+    is found'
+  code: |-
+    [
+      undefined,
+      'XX',
+      'ZZ',
+      ''
+    ].forEach((city) => {
+      const copyMockData = createMockData({ city: city, countryCode: undefined });
+
+      const variableResult = runCode(copyMockData);
+
+      assertThat(variableResult).isNull();
+      assertApi('sendHttpRequest').wasNotCalled();
+    });
+- name: '[Geo Resolution] Builds query using data fields then X-Geo headers then X-Gclb
+    headers'
+  code: |-
+    [
+      {
+        dataOverrides: { city: 'Berlin', countryCode: 'DE' },
+        headers: { 'X-Geo-City': 'Paris', 'X-Geo-Country': 'FR', 'X-Gclb-Region': 'Tokyo', 'X-Gclb-Country': 'JP' },
+        expectedQuery: 'q=Berlin, DE'
+      },
+      {
+        dataOverrides: { city: undefined, countryCode: undefined },
+        headers: { 'X-Geo-City': 'London', 'X-Geo-Country': 'GB', 'X-Gclb-Region': 'Tokyo', 'X-Gclb-Country': 'JP' },
+        expectedQuery: 'q=London, GB'
+      },
+      {
+        dataOverrides: { city: undefined, countryCode: undefined },
+        headers: { 'X-Gclb-Region': 'Tokyo', 'X-Gclb-Country': 'JP' },
+        expectedQuery: 'q=Tokyo, JP'
+      }
+    ].forEach((scenario) => {
+      const copyMockData = createMockData(scenario.dataOverrides);
+
+      mock('getRequestHeader', (name) => scenario.headers[name]);
+      mock('sendHttpRequest', (url) => {
+        assertThat(url).contains(scenario.expectedQuery);
+        return Promise.create((resolve) => resolve({ statusCode: 200, body: JSON.stringify(successBody) }));
+      });
+
+      runCode(copyMockData);
+    });
+- name: '[Request] Encodes special characters in city and apiKey and includes units
+    in the URL'
+  code: |-
+    const copyMockData = createMockData({ city: 'Rio de Janeiro', apiKey: 'ab&cd=1', units: 'metric' });
+
+    mock('sendHttpRequest', (url) => {
+      assertThat(url).isEqualTo('https://api.openweathermap.org/data/2.5/weather?q=Rio%20de%20Janeiro, br&appid=ab%26cd%3D1&units=metric');
+      return Promise.create((resolve) => resolve({ statusCode: 200, body: JSON.stringify(successBody) }));
+    });
+
+    runCode(copyMockData);
+- name: '[Response Mapping] Extracts every whatToReturn path, including missing optional
+    fields'
+  code: |-
+    [
+      { path: 'coord.lon', expected: -0.13 },
+      { path: 'coord.lat', expected: 51.51 },
+      { path: 'weather.0.description', expected: 'light intensity drizzle' },
+      { path: 'main.pressure', expected: 1012 },
+      { path: 'main.humidity', expected: 81 },
+      { path: 'main.temp_min', expected: 279.15 },
+      { path: 'main.temp_max', expected: 281.15 },
+      { path: 'visibility', expected: 10000 },
+      { path: 'wind.speed', expected: 4.1 },
+      { path: 'clouds.all', expected: 90 },
+      { path: 'sys.sunrise', expected: 1485762037 },
+      { path: 'sys.sunset', expected: 1485794875 },
+      { path: 'main.feels_like', expected: undefined },
+      { path: 'wind.gust', expected: undefined },
+      { path: 'rain.1h', expected: undefined },
+      { path: 'snow.1h', expected: undefined }
+    ].forEach((scenario) => {
+      const copyMockData = createMockData({ whatToReturn: scenario.path });
+
+      runCode(copyMockData).then((variableResult) => {
+        if (getType(scenario.expected) === 'undefined') {
+          assertThat(variableResult).isUndefined();
+        } else {
+          assertThat(variableResult).isEqualTo(scenario.expected);
+        }
+      });
+    });
+- name: '[Response Mapping] Defaults to main temp and rounds it up when whatToReturn
+    is not set'
+  code: |-
+    const copyMockData = createMockData({ whatToReturn: undefined });
+
+    runCode(copyMockData).then((variableResult) => {
+      assertThat(variableResult).isEqualTo(281);
+    });
+- name: '[Response Mapping] Returns the full parsed body when whatToReturn is allData'
+  code: |-
+    const copyMockData = createMockData({ whatToReturn: 'allData' });
+
+    runCode(copyMockData).then((variableResult) => {
+      assertThat(variableResult).isEqualTo(successBody);
+    });
+- name: '[Error Response] Returns the API error message on a non-200 status code'
+  code: |-
+    mock('sendHttpRequest', () => Promise.create((resolve) => resolve({
+      statusCode: 401,
+      body: JSON.stringify({ cod: 401, message: 'Invalid API key. Please see https://openweathermap.org/faq#error401 for more info.' })
+    })));
+
+    runCode(createMockData()).then((variableResult) => {
+      assertThat(variableResult).isEqualTo('Invalid API key. Please see https://openweathermap.org/faq#error401 for more info.');
+    });
+- name: '[Error Response] Returns a generic Request failed message when the error
+    response has no message'
+  code: |-
+    mock('sendHttpRequest', () => Promise.create((resolve) => resolve({ statusCode: 500 })));
+
+    runCode(createMockData()).then((variableResult) => {
+      assertThat(variableResult).isEqualTo('Request failed');
+    });
+- name: '[Network Failure] Returns Error with the reason when the request promise
+    rejects'
+  code: |-
+    mock('sendHttpRequest', () => Promise.create((resolve, reject) => reject({ reason: 'timed_out' })));
+
+    runCode(createMockData()).then((variableResult) => {
+      assertThat(variableResult).isEqualTo('Error: timed_out');
+    });
+- name: '[Network Failure] Returns a generic Error when the rejection has no reason'
+  code: |-
+    mock('sendHttpRequest', () => Promise.create((resolve, reject) => reject({})));
+
+    runCode(createMockData()).then((variableResult) => {
+      assertThat(variableResult).isEqualTo('Error');
+    });
+setup: |-
+  const JSON = require('JSON');
+  const Promise = require('Promise');
+  const Object = require('Object');
+  const getType = require('getType');
+
+  const assign = (target, source) => {
+    if (!source) return target;
+    const keys = Object.keys(source);
+    keys.forEach((key) => { target[key] = source[key]; });
+    return target;
+  };
+
+  const successBody = {
+    coord: { lon: -0.13, lat: 51.51 },
+    weather: [
+      { id: 300, main: 'Drizzle', description: 'light intensity drizzle', icon: '09d' }
+    ],
+    base: 'stations',
+    main: { temp: 280.32, pressure: 1012, humidity: 81, temp_min: 279.15, temp_max: 281.15 },
+    visibility: 10000,
+    wind: { speed: 4.1, deg: 80 },
+    clouds: { all: 90 },
+    dt: 1485789600,
+    sys: { type: 1, id: 5091, message: 0.0103, country: 'GB', sunrise: 1485762037, sunset: 1485794875 },
+    id: 2643743,
+    name: 'London',
+    cod: 200
+  };
+
+  const baseMockData = {
+    apiKey: 'test-api-key',
+    units: 'imperial',
+    countryCode: 'br',
+    city: 'Capivari',
+    whatToReturn: 'main.temp'
+  };
+
+  const createMockData = (overrides) => assign(assign({}, baseMockData), overrides);
+
+  mock('getRequestHeader', () => undefined);
+
+  mock('sendHttpRequest', () => {
+    return Promise.create((resolve) => {
+      resolve({ statusCode: 200, body: JSON.stringify(successBody) });
+    });
+  });
 
 
 ___NOTES___
+
+2026-07-27 - Change Notes:
+  - Broaden the variable description and improve API Key, Country Code and City help text (clearer GCP App Engine wording, added city help, link to the OpenWeather API Keys page)
+  - Add comprehensive unit test coverage for geo resolution, request building, whatToReturn mapping, API error handling and network failures
 
 2026-05-21 Change Notes:
  - Console logging removal.
 
 Created on 15/02/2024, 17:22:27
-
 

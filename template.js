@@ -3,7 +3,6 @@ const getRequestHeader = require('getRequestHeader');
 const getType = require('getType');
 const JSON = require('JSON');
 const makeString = require('makeString');
-const makeTableMap = require('makeTableMap');
 const Math = require('Math');
 const sendHttpRequest = require('sendHttpRequest');
 
